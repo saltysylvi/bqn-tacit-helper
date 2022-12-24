@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>BQN Tacit Helper</title>
+        <style>
+            @font-face{ font-family: BQN; src: url(BQN386.ttf) format('truetype'); }
+            * { font-family: BQN; }
+            body { font-size: 18px; }
+            section { display: none; position: absolute; top: 0; min-height: 100vh; width: 100%; background: white; }
+            section:target { display: block; }
+            #main { display: flex; flex-direction: column; align-items: center; }
+            .container { font-size: 2em; display: flex; justify-content: center; align-items: center; flex-direction: row; }
+            input { font-size: 1em; height: 1em; width: 25ch; }
+            #about { padding: 5vw 5vw 8vw 5vw; }
+            #aboutdiv { width: 70ch; }
+        </style>
+    </head>
+    <body>
+        <section id="main">
+            <h1>Transform tacit BQN to block form</h1>
+            <div class="container">
+                <label for="F">
+                    <pre>𝔽 ← </pre>
+                </label>
+                <input id="F" autofocus autocomplete="off" spellcheck="false" oninput="run()" placeholder="+´÷≠" />
+            </div>
+            <div class="container">
+                <label for="Fx">
+                    <pre>{𝔽𝕩} ⇔ </pre> 
+                </label>
+                <pre class="output" id="Fx"> </pre>
+            </div>
+            <div class="container">
+                <label for="wFx">
+                    <pre>{𝕨𝔽𝕩} ⇔ </pre> 
+                </label>
+                <pre class="output" id="wFx"> </pre>
+            </div>
+            <p><a href="#" id="perm">permalink</a> <a href="#about">About</a></p>
+        </section>
+        <section id="about">
+            <a href="#main">Back</a>
+            <div id="aboutdiv">
+                <h1>About</h1>
+                <p>
+                    Here's a BQN thing I made for converting a tacit function to a block function.
+                    It's inspired by <a href="https://tacit.help">tacit.help</a>.
+                    My handwritten tokenizer and parser are pretty janky and do not conform to the <a href="https://mlochbaum.github.io/BQN/spec/index.html">BQN spec</a>,
+                    but I give them my official "ehhh, good enough" seal of approval.
+                    The parser is based on <a href="https://www.jsoftware.com/ioj/iojSent.htm#Parsing">An Implementation of J</a>.
+                    The permalink functionality is copied from the <a href="https://mlochbaum.github.io/BQN/try.html">BQN repl</a>.
+                    The font is <a href="https://github.com/mlochbaum/BQN/blob/master/docs/BQN386.ttf">BQN386</a>.
+                </p>
+                <p>
+                    Only a subset of BQN syntax is allowed.
+                    Tokens must be primitives, numbers, characters, strings, identifiers, stranded lists of the aforementioned tokens types, or parentheses.
+                    This means no blocks, no angle-bracket lists, no higher-rank arrays, no nested stranded lists, no namespace field accesses, and no define/change/export.
+                    The string in the input box must be a function expression.
+                </p>
+                <p>
+                    When possible, the page recursively expands trains, atop, over, constant, before, after, and self/swap,
+                    and eliminates identity/left/right functions.
+                    Expansion is not performed if the function to be expanded is the operand to a one-modifier or two-modifier that is not a combinator.
+                    In particular, this means that nested blocks are never produced.
+                    The results are fully parenthesized.
+                </p>
+                <p><a href="?code=MC4wMeKKuCjiiqPDl8K34oyKMC41K8O3y5wp">Check</a> <a href="?code=KC3Dt+KXiyjDl8K0KTHiirgrKeKfnOKGlcuc">out</a> <a href="?code=wqziiJjiiIrin5wiLiw6Oz8hIuKKuC8=">these</a> <a href="?code=KOKKoi3LnCtgw5fCrCniiJg94oqU4oqi">examples</a>.</p>
+            </div>
+        </section>
+<script>
+/**** Tokenizer ****/ 
+const lpregex = ["lparen", /^\(/g];
+const rpregex = ["rparen", /^\)/g];
+const funcregex = ["function", /^[A-Z][a-zA-Z\d_]*|^[\+\-×÷⋆√⌊⌈∧∨¬\|≤<>≥=≠≡≢⊣⊢⥊∾≍⋈↑↓↕»«⌽⍉\/⍋⍒⊏⊑⊐⊒∊⍷⊔!]/g];
+const onemodregex = ["oneModifier", /^_+[a-zA-Z][a-zA-Z\d_]*|^[˙˜˘¨⁼⌜´˝`]/g];
+const twomodregex = ["twoModifier", /^_+[a-zA-Z][a-zA-Z\d_]*_|^[∘○⊸⟜⌾⊘◶⎉⚇⍟]/g];
+const subjregex = ["subject", /^(?:¯?(?:∞|(?:π|\d+(?:\.\d+)?)(?:[eE]¯?\d+)?)|_*[a-zA-Z][a-zA-Z\d_]*|'.'|"([^"]|"")*"|[.@\+\-×÷⋆√⌊⌈∧∨¬\|≤<>≥=≠≡≢⊣⊢⥊∾≍⋈↑↓↕»«⌽⍉\/⍋⍒⊏⊑⊐⊒∊⍷⊔!˙˜˘¨⁼⌜´˝`∘○⊸⟜⌾⊘◶⎉⚇⍟])(?:‿(?:¯?(?:∞|(?:π|\d+(?:\.\d+)?)(?:[eE]¯?\d+)?)|_*[a-zA-Z][a-zA-Z\d_]*|'.'|"([^"]|"")*"|[.@\+\-×÷⋆√⌊⌈∧∨¬\|≤<>≥=≠≡≢⊣⊢⥊∾≍⋈↑↓↕»«⌽⍉\/⍋⍒⊏⊑⊐⊒∊⍷⊔!˙˜˘¨⁼⌜´˝`∘○⊸⟜⌾⊘◶⎉⚇⍟]))+|^(?:¯?(?:∞|(?:π|\d+(?:\.\d+)?)(?:[eE]¯?\d+)?)|[a-z][a-zA-Z\d_]*|[·@]|'.'|"([^"]|"")*")/g];
+const wsregex = ["whitespace", /^\s+/g];
+const regexes = [lpregex, rpregex, subjregex, funcregex, twomodregex, onemodregex, wsregex];
+function nextToken(string) {
+    for (let [type, regex] of regexes) {
+        let match = regex.exec(string);
+        if (match) {
+            string = string.slice(regex.lastIndex);
+            regex.lastIndex = 0;
+        return [[type, match[0]], string];
+        }
+    }
+    throw new Error("unrecognized token");
+}
+function tokenize(string) {
+    const tokens = [];
+    let token;
+    while (string) {
+        [token, string] = nextToken(string);
+        if(token[0]!="whitespace")tokens.push(token);
+    }
+    return tokens;
+}
+/**** Parser ****/
+const [subj, func, mod1, mod2, lpar, rpar] = ["subject", "function", "oneModifier", "twoModifier", "lparen", "rparen"].map(x => new Set([x]));
+const sf   = new Set(["subject", "function"]);
+const sf12 = new Set(["subject", "function", "oneModifier", "twoModifier"]);
+const edge = new Set(["lparen", "end"]);
+const any  = new Set(["subject", "function", "oneModifier", "twoModifier", "lparen", "rparen", "end"]);
+const edgeOrSf1 = new Set(["subject", "function", "oneModifier", "lparen", "end"]);
+function range([start,end]) { let result = []; for (let i = start; i <= end; i++) result.push(i); return result; }
+function makeParser(name, role) {
+    return function(tokens, idx) {
+        let newToken = [role, [name].concat(range(idx).map(i=>tokens[i][1]))]
+        return Array.prototype.concat(tokens.slice(0,idx[0]), [newToken], tokens.slice(idx[1]+1));
+    }
+}
+const parseMonad  = makeParser("monad", "subject");
+const parseDyad   = makeParser("dyad", "subject");
+const parseMod1   = makeParser("oneModifier", "function");
+const parseMod2   = makeParser("twoModifier", "function");
+const parseTrain3 = makeParser("fork", "function");
+const parseTrain2 = makeParser("twoTrain", "function");
+const parseParens = (tokens, idx) => [tokens[1], tokens[3]]; // special rule for discharging parens; idx is always [0,2]
+const parseTable = [
+[[edge,      func, subj, any],  [parseMonad,  [1,2]]],
+[[edgeOrSf1, func, func, subj], [parseMonad,  [2,3]]],
+[[edgeOrSf1, subj, func, subj], [parseDyad,   [1,3]]],
+[[edgeOrSf1, sf,   mod1, any],  [parseMod1,   [1,2]]],
+[[edgeOrSf1, sf,   mod2, sf],   [parseMod2,   [1,3]]],
+[[edgeOrSf1, sf,   func, func], [parseTrain3, [1,3]]],
+[[edge,      func, func, any],  [parseTrain2, [1,2]]],
+[[lpar,      sf12, rpar, any],  [parseParens, [0,2]]]
+];
+function last4(stack) { return stack.slice(-4).reverse(); }
+function matchRule(tokens) {
+   for (let row of parseTable) {
+       let flag = true;
+       for (let [i, token] of tokens.entries()) {
+           if (!row[0][i].has(token[0])) flag=false;
+       }
+       if (flag) return row[1];
+    }
+    return false; // no match
+}
+function parse(tokens) {
+    tokens.unshift(["end"]);
+    let stack = [["end"], ["end"], ["end"], ["end"]];
+    while(true) {
+        let rule = matchRule(last4(stack));
+        if (rule) {
+            stack = stack.slice(0,-4).concat(rule[0](last4(stack), rule[1]).reverse());
+        } else {
+            if(tokens.length == 0) {
+                if (stack.length != 6 || [0,1,2,3,5].some(i => stack[i][0] != "end")) throw new Error("failed to parse");
+                if (stack[4][0] != "function") throw new Error("not a function");
+                return stack[4][1];
+            }
+            stack.push(tokens.pop());
+        }
+    }
+}
+/**** Tacit -> Block ****/
+// recheck which things are subjects for special simplifications
+function isSubj(str) {
+    let result = typeof str == "string" ? subjregex[1].test(str) : str[0] == "monad" || str[0] == "dyad";
+    subjregex[1].lastIndex = 0;
+    return result;
+}
+// ex(pand|plicate) trains and combinators
+function ex(tree) {
+    if (!Array.isArray(tree)) return tree;
+    if (tree[0] == "monad") {
+        if (tree[1][2] == "∘" || tree[1][2] == "○") return ex(["monad", tree[1][1], ["monad", tree[1][3], tree[2]]]);
+        if (tree[1][2] == "⊸") return ex(["dyad", ["monad", tree[1][1], tree[2]], tree[1][3], tree[2]]);
+        if (tree[1][2] == "⟜") return ex(["dyad", tree[2], tree[1][1], ["monad", tree[1][3], tree[2]]]);
+        if (tree[1][2] == "˜") return ex(["dyad", tree[2], tree[1][1], tree[2]]);
+        if (tree[1][2] == "˙" && isSubj(tree[1][1])) return ex(tree[1][1]);
+        if (tree[1][0] == "twoTrain") return ex(["monad", tree[1][1], ["monad", tree[1][2], tree[2]]]);
+        if (tree[1][0] == "fork") return tree[1][1]=="·"?ex(["monad", tree[1][2],["monad", tree[1][3], tree[2]]]):ex(["dyad", ["monad", tree[1][1], tree[2]], tree[1][2], ["monad", tree[1][3], tree[2]]]);
+        if (tree[1] == "⊣" || tree[1] == "⊢") return ex(tree[2]);
+        if (isSubj(tree[1])) return ex(tree[1]);
+        return ["monad", tree[1], ex(tree[2])];
+    } else if (tree[0] == "dyad") {
+        if (tree[2][2] == "∘") return ex(["monad", tree[2][1], ["dyad", tree[1], tree[2][3], tree[3]]]);
+        if (tree[2][2] == "○") return ex(["dyad", ["monad", tree[2][3], tree[1]], tree[2][1], ["monad", tree[2][3], tree[3]]]);
+        if (tree[2][2] == "⊸") return ex(["dyad", ["monad", tree[2][1], tree[1]], tree[2][3], tree[3]]);
+        if (tree[2][2] == "⟜") return ex(["dyad", tree[1], tree[2][1], ["monad", tree[2][3], tree[3]]]);
+        if (tree[2][2] == "˜") return ex(["dyad", tree[3], tree[2][1], tree[1]]);
+        if (tree[2][2] == "˙" && isSubj(tree[2][1])) return ex(tree[2][1]); 
+        if (tree[2][0] == "twoTrain") return ex(["monad", tree[2][1], ["dyad", tree[1], tree[2][2], tree[3]]]);
+        if (tree[2][0] == "fork") return tree[2][1]=="·"?ex(["monad", tree[2][2], ["dyad", tree[1], tree[2][3], tree[3]]]):ex(["dyad", ["dyad", tree[1], tree[2][1], tree[3]], tree[2][2], ["dyad", tree[1], tree[2][3], tree[3]]]);
+        if (tree[2] == "⊣") return ex(tree[1]);
+        if (tree[2] == "⊢") return ex(tree[3]);
+        if (isSubj(tree[2])) return ex(tree[2]);
+        return ["dyad", ex(tree[1]), tree[2], ex(tree[3])];
+    }
+    return tree;
+}
+// convert parse tree to string, fully parenthesized
+function flatten(tree) {
+    const go = tree => Array.isArray(tree) ? "("+tree.slice(1).map(go).join('')+")" : " "+tree+" ";
+    let result = go(tree).replace(/([a-z\d_]) +([a-z\d_])/gi, '$1⍎$2').replace(/([a-z\d_]) +([a-z\d_])/gi, '$1⍎$2').replace(/ /g,'').replace(/⍎/g, ' '); // first replace happens twice for overlapping matches
+    return result[0] == '(' ? result.slice(1,-1) : result;
+}
+// tacit string -> tacit tree -> block tree -> block string
+function blockify(string, valence) {
+    try {
+        let tree = parse(tokenize(string));
+        tree = valence == "monad" ? ["monad", tree, "𝕩"] : ["dyad", "𝕨", tree, "𝕩"];
+        return "{"+flatten(ex(tree))+"}";
+    } catch (e) { return e; }
+}
+/**** Page logic ****/
+let input = document.getElementById('F')
+let monadOutput = document.getElementById('Fx');
+let dyadOutput = document.getElementById('wFx');
+function run() {
+    let value = input.value == "" ? input.placeholder : input.value;
+    monadOutput.textContent = blockify(value, "monad");
+    dyadOutput.textContent = blockify(value, "dyad");
+}
+run();
+const perm = document.getElementById("perm");
+perm.onmouseover = perm.onfocus = () => {
+  let b = (new TextEncoder()).encode(input.value);
+  perm.href = '?code='+btoa(String.fromCharCode(...b));
+}
+if (location.search) {
+    let code = location.search.slice(6);
+    let b = new Uint8Array([...atob(code)].map(c=>c.charCodeAt(0)));
+    input.value=(new TextDecoder()).decode(b);
+    run();
+}
+</script>
+</body>
+</html>
