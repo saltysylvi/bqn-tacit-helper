@@ -218,7 +218,6 @@ function run() {
     monadOutput.textContent = blockify(value, "monad");
     dyadOutput.textContent = blockify(value, "dyad");
 }
-run();
 const perm = document.getElementById("perm");
 perm.onmouseover = perm.onfocus = () => {
   let b = (new TextEncoder()).encode(input.value);
@@ -228,8 +227,8 @@ if (location.search) {
     let code = location.search.slice(6);
     let b = new Uint8Array([...atob(code)].map(c=>c.charCodeAt(0)));
     input.value=(new TextDecoder()).decode(b);
-    run();
 }
+run();
 </script>
 </body>
 </html>
