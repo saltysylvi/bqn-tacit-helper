@@ -168,7 +168,8 @@ function isSubj(str) {
 // ex(pand|plicate) trains and combinators
 function ex(tree) {
     if (!Array.isArray(tree)) return tree;
-    if (tree[0] == "monad") {
+    if (tree[0] == "block") return ["block", ex(tree[1])];
+    else if (tree[0] == "monad") {
         if (tree[1][2] == "∘" || tree[1][2] == "○") return ex(["monad", tree[1][1], ["monad", tree[1][3], tree[2]]]);
         if (tree[1][2] == "⊸") return ex(["dyad", ["monad", tree[1][1], tree[2]], tree[1][3], tree[2]]);
         if (tree[1][2] == "⟜") return ex(["dyad", tree[2], tree[1][1], ["monad", tree[1][3], tree[2]]]);
@@ -196,17 +197,23 @@ function ex(tree) {
     return tree;
 }
 // convert parse tree to string, fully parenthesized
-function flatten(tree) {
-    const go = tree => Array.isArray(tree) ? "("+tree.slice(1).map(go).join('')+")" : " "+tree+" ";
-    let result = go(tree).replace(/([a-z\d_]) +([a-z\d_])/gi, '$1⍎$2').replace(/([a-z\d_]) +([a-z\d_])/gi, '$1⍎$2').replace(/ /g,'').replace(/⍎/g, ' '); // first replace happens twice for overlapping matches
-    return result[0] == '(' ? result.slice(1,-1) : result;
+function toString(tree) {
+    const go = tree => {
+        if (!Array.isArray(tree)) return tree;
+        if (tree[0] == "block") {
+            let a = go(tree[1]);
+            return "{"+(a[0]=='('?a.slice(1,-1):a)+"}";
+        }
+        return "("+tree.slice(1).map(go).join(' ')+")";
+    };
+    return go(tree).replace(/(?<=[a-z\d_]) +(?=[a-z\d_])/gi, '#').replace(/ /g, '').replace(/#/g, ' ');
 }
 // tacit string -> tacit tree -> block tree -> block string
 function blockify(string, valence) {
     try {
         let tree = parse(tokenize(string));
-        tree = valence == "monad" ? ["monad", tree, "𝕩"] : ["dyad", "𝕨", tree, "𝕩"];
-        return "{"+flatten(ex(tree))+"}";
+        tree = valence == "monad" ? ["block", ["monad", tree, "𝕩"]] : ["block", ["dyad", "𝕨", tree, "𝕩"]];
+        return toString(ex(tree));
     } catch (e) { return e; }
 }
 /**** Page logic ****/
