@@ -61,8 +61,10 @@
                 <p>
                     When possible, the page recursively expands trains, atop, over, constant, before, after, and self/swap,
                     and eliminates identity/left/right functions.
-                    Expansion is not performed if the function to be expanded is the operand to a one-modifier or two-modifier that is not a combinator.
-                    In particular, this means that nested blocks are never produced.
+                    Nested blocks are created for non-simple operands to cells, each, table, fold, insert, or scan.
+                    Nested blocks are also created for non-simple left operands to rank and depth; the right operand is left untouched (it's usually a number or list anyway).
+                    A function expression is "simple" if it is a primitive or idenitifier.
+                    Expansion is not performed if the function to be expanded is the operand to a modifier not mentioned above.
                     The results are fully parenthesized.
                 </p>
                 <p><a href="?code=MC4wMeKKuCjiiqPDl8K34oyKMC41K8O3y5wp">Check</a> <a href="?code=KC3Dt+KXiyjDl8K0KTHiirgrKeKfnOKGlcuc">out</a> <a href="?code=wqziiJjiiIrin5wiLiw6Oz8hIuKKuC8=">these</a> <a href="?code=KOKKoi3LnCtgw5fCrCniiJg94oqU4oqi">examples</a>.</p>
@@ -179,6 +181,9 @@ function ex(tree) {
         if (tree[1][0] == "fork") return tree[1][1]=="·"?ex(["monad", tree[1][2],["monad", tree[1][3], tree[2]]]):ex(["dyad", ["monad", tree[1][1], tree[2]], tree[1][2], ["monad", tree[1][3], tree[2]]]);
         if (tree[1] == "⊣" || tree[1] == "⊢") return ex(tree[2]);
         if (isSubj(tree[1])) return ex(tree[1]);
+        if ("`´˝".includes(tree[1][2]) && Array.isArray(tree[1][1])) return ["monad", ["oneModifier", ex(["block", ["dyad", "𝕨", tree[1][1], "𝕩"]]), tree[1][2]], ex(tree[2])];
+        if ("˘¨⌜".includes(tree[1][2]) && Array.isArray(tree[1][1])) return ["monad", ["oneModifier", ex(["block", ["monad", tree[1][1], "𝕩"]]), tree[1][2]], ex(tree[2])];
+        if ("⎉⚇".includes(tree[1][2]) && Array.isArray(tree[1][1])) return ["monad", ["twoModifier", ex(["block", ["monad", tree[1][1], "𝕩"]]), tree[1][2], tree[1][3]], ex(tree[2])];
         return ["monad", tree[1], ex(tree[2])];
     } else if (tree[0] == "dyad") {
         if (tree[2][2] == "∘") return ex(["monad", tree[2][1], ["dyad", tree[1], tree[2][3], tree[3]]]);
@@ -192,6 +197,8 @@ function ex(tree) {
         if (tree[2] == "⊣") return ex(tree[1]);
         if (tree[2] == "⊢") return ex(tree[3]);
         if (isSubj(tree[2])) return ex(tree[2]);
+        if ("`´˝˘¨⌜".includes(tree[2][2]) && Array.isArray(tree[2][1])) return ["dyad", ex(tree[1]), ["oneModifier", ex(["block", ["dyad", "𝕨", tree[2][1], "𝕩"]]), tree[2][2]], ex(tree[3])];
+        if ("⎉⚇".includes(tree[2][2]) && Array.isArray(tree[2][1])) return ["dyad", ex(tree[1]), ["twoModifier", ex(["block", ["dyad", "𝕨", tree[2][1], "𝕩"]]), tree[2][2], tree[2][3]], ex(tree[3])];
         return ["dyad", ex(tree[1]), tree[2], ex(tree[3])];
     }
     return tree;
