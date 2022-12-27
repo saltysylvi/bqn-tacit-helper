@@ -8,8 +8,10 @@
             * { font-family: BQN; }
             body { font-size: 18px; }
             section { display: none; position: absolute; top: 0; min-height: 100vh; width: 100%; background: white; }
+            #Gdiv { display: none; }
             section:target { display: block; }
             #main { display: flex; flex-direction: column; align-items: center; }
+            .FG {display: flex; flex-direction: row; gap: 20px; }
             .container { font-size: 2em; display: flex; justify-content: center; align-items: center; flex-direction: row; }
             input { font-size: 1em; height: 1em; width: 25ch; }
             #about { padding: 5vw 5vw 8vw 5vw; }
@@ -19,25 +21,49 @@
     <body>
         <section id="main">
             <h1>Transform tacit BQN to block form</h1>
-            <div class="container">
-                <label for="F">
-                    <pre>𝔽 ← </pre>
-                </label>
-                <input id="F" autofocus autocomplete="off" spellcheck="false" oninput="run()" placeholder="+´÷≠" />
+            <div class="FG">
+                <div>
+                    <div class="container">
+                        <label for="F">
+                            <pre>𝔽 ← </pre>
+                        </label>
+                        <input id="F" autofocus autocomplete="off" spellcheck="false" oninput="run('F')" placeholder="+´÷≠" />
+                    </div>
+                    <div class="container">
+                        <label for="Fx">
+                            <pre>{𝔽𝕩} ⇔ </pre> 
+                        </label>
+                        <pre class="output" id="Fx"> </pre>
+                    </div>
+                    <div class="container">
+                        <label for="wFx">
+                            <pre>{𝕨𝔽𝕩} ⇔ </pre> 
+                        </label>
+                        <pre class="output" id="wFx"> </pre>
+                    </div>
+                </div>
+                <div id="Gdiv">
+                    <div class="container">
+                        <label for="G">
+                            <pre>𝔾 ← </pre>
+                        </label>
+                        <input id="G" autofocus autocomplete="off" spellcheck="false" oninput="run('G')" placeholder="10⊸×⊸+˜´∘⌽" />
+                    </div>
+                    <div class="container">
+                        <label for="Gx">
+                            <pre>{𝔾𝕩} ⇔ </pre> 
+                        </label>
+                        <pre class="output" id="Gx"> </pre>
+                    </div>
+                    <div class="container">
+                        <label for="wGx">
+                            <pre>{𝕨𝔾𝕩} ⇔ </pre> 
+                        </label>
+                        <pre class="output" id="wGx"> </pre>
+                    </div>
+                </div>
             </div>
-            <div class="container">
-                <label for="Fx">
-                    <pre>{𝔽𝕩} ⇔ </pre> 
-                </label>
-                <pre class="output" id="Fx"> </pre>
-            </div>
-            <div class="container">
-                <label for="wFx">
-                    <pre>{𝕨𝔽𝕩} ⇔ </pre> 
-                </label>
-                <pre class="output" id="wFx"> </pre>
-            </div>
-            <p><a href="#" id="perm">permalink</a> <a href="#about">About</a></p>
+            <p><a href="#" id="perm">Permalink</a> <a href="#" id="GButton" onclick="toggleG()">Show 𝔾</a> <a href="#about">About</a></p>
         </section>
         <section id="about">
             <a href="#main">Back</a>
@@ -67,7 +93,7 @@
                     Expansion is not performed if the function to be expanded is the operand to a modifier not mentioned above.
                     The results are fully parenthesized.
                 </p>
-                <p><a href="?code=MC4wMeKKuCjiiqPDl8K34oyKMC41K8O3y5wp">Check</a> <a href="?code=KC3Dt+KXiyjDl8K0KTHiirgrKeKfnOKGlcuc">out</a> <a href="?code=wqziiJjiiIrin5wiLiw6Oz8hIuKKuC8=">these</a> <a href="?code=KOKKoi3LnCtgw5fCrCniiJg94oqU4oqi">examples</a>.</p>
+                <p><a href="?f=MC4wMeKKuCjiiqPDl8K34oyKMC41K8O3y5wp&g=&gvis=false">Check</a> <a href="?f=KC3Dt+KXiyjDl8K0KTHiirgrKeKfnOKGlcuc&g=&gvis=false">out</a> <a href="?f=wqziiJjiiIrin5wiLiw6Oz8hIuKKuC8=&g=&gvis=false">these</a> <a href="?f=KOKKoi3LnCtgw5fCrCniiJg94oqU4oqi&g=&gvis=false">examples</a>.</p>
                 <p>View the source code <a href="https://github.com/saltysylvi/bqn-tacit-helper">here</a>.</p>
             </div>
         </section>
@@ -224,25 +250,45 @@ function blockify(string, valence) {
     } catch (e) { return e; }
 }
 /**** Page logic ****/
-let input = document.getElementById('F')
-let monadOutput = document.getElementById('Fx');
-let dyadOutput = document.getElementById('wFx');
-function run() {
+let GButton = document.getElementById('GButton');
+let Gdiv = document.getElementById('Gdiv');
+let GVisible = false;
+let FStuff = {input: document.getElementById('F'), monadOutput: document.getElementById('Fx'), dyadOutput: document.getElementById('wFx')};
+let GStuff = {input: document.getElementById('G'), monadOutput: document.getElementById('Gx'), dyadOutput: document.getElementById('wGx')};
+function run(func) {
+    let {input, monadOutput, dyadOutput} = func == 'F' ? FStuff : GStuff;
     let value = input.value == "" ? input.placeholder : input.value;
     monadOutput.textContent = blockify(value, "monad");
     dyadOutput.textContent = blockify(value, "dyad");
 }
 const perm = document.getElementById("perm");
 perm.onmouseover = perm.onfocus = () => {
-  let b = (new TextEncoder()).encode(input.value);
-  perm.href = '?code='+btoa(String.fromCharCode(...b));
+  let f = (new TextEncoder()).encode(FStuff.input.value);
+  let g = (new TextEncoder()).encode(GStuff.input.value);
+  perm.href = '?f='+btoa(String.fromCharCode(...f))+'&g='+btoa(String.fromCharCode(...g))+'&gvis='+GVisible;
 }
 if (location.search) {
-    let code = location.search.slice(6);
-    let b = new Uint8Array([...atob(code)].map(c=>c.charCodeAt(0)));
-    input.value=(new TextDecoder()).decode(b);
+    let [fcode, gcode, gvis] = location.search.split('&');
+    fcode = fcode.slice(3);
+    gcode = gcode.slice(2);
+    if (gvis.slice(5) == "true") toggleG();
+    let f = new Uint8Array([...atob(fcode)].map(c=>c.charCodeAt(0)));
+    let g = new Uint8Array([...atob(gcode)].map(c=>c.charCodeAt(0)));
+    FStuff.input.value=(new TextDecoder()).decode(f);
+    GStuff.input.value=(new TextDecoder()).decode(g);
 }
-run();
+function toggleG() {
+    if (GVisible) {
+        Gdiv.style.display = "none";
+        GButton.innerText = "Show 𝔾";
+    }
+    else {
+        Gdiv.style.display = "block";
+        GButton.innerText = "Hide 𝔾";
+    }
+    GVisible = !GVisible;
+}
+['F', 'G'].forEach(run);
 </script>
 </body>
 </html>
