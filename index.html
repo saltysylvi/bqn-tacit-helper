@@ -64,7 +64,7 @@
                     </div>
                 </div>
             </div>
-            <p><a href="#" id="perm">Permalink</a> <a href="#" id="GButton" onclick="toggleG()">Show 𝔾</a> <a href="#about">About</a></p>
+            <p><a href="#" id="perm">Permalink</a> <a href="#" id="GButton" onclick="toggleG()">Show 𝔾</a> <a href="#" id="parensButton" onclick="toggleParens()">More Parens</a> <a href="#about">About</a></p>
         </section>
         <section id="about">
             <a href="#main">Back</a>
@@ -92,9 +92,8 @@
                     Nested blocks are also created for non-simple left operands to rank and depth; the right operand is left untouched (it's usually a number or list anyway).
                     A function expression is "simple" if it is a primitive or idenitifier.
                     Expansion is not performed if the function to be expanded is the operand to a modifier not mentioned above.
-                    The results are fully parenthesized.
                 </p>
-                <p><a href="?f=MC4wMeKKuCjiiqPDl8K34oyKMC41K8O3y5wp&g=&gvis=false">Check</a> <a href="?f=KC3Dt+KXiyjDl8K0KTHiirgrKeKfnOKGlcuc&g=&gvis=false">out</a> <a href="?f=wqziiJjiiIrin5wiLiw6Oz8hIuKKuC8=&g=&gvis=false">these</a> <a href="?f=KOKKoi3LnCtgw5fCrCniiJg94oqU4oqi&g=&gvis=false">examples</a>.</p>
+                <p><a href="?f=MC4wMeKKuCjiiqPDl8K34oyKMC41K8O3y5wp&g=&gvis=false&parens=less">Check</a> <a href="?f=KC3Dt+KXiyjDl8K0KTHiirgrKeKfnOKGlcuc&g=&gvis=false&parens=less">out</a> <a href="?f=wqziiJjiiIrin5wiLiw6Oz8hIuKKuC8=&g=&gvis=false&parens=less">these</a> <a href="?f=KOKKoi3LnCtgw5fCrCniiJg94oqU4oqi&g=&gvis=false&parens=less">examples</a>.</p>
                 <p>View the source code <a href="https://github.com/saltysylvi/bqn-tacit-helper">here</a>.</p>
             </div>
         </section>
@@ -230,17 +229,22 @@ function ex(tree) {
     }
     return tree;
 }
-// convert parse tree to string, fully parenthesized
+// convert parse tree to string
 function toString(tree) {
+    const mp = s => '('+s+')'; // mandatory parens
+    const op = moreParens ? mp : s => s; // optional parens
     const go = tree => {
+        // each case is responsible for how its children are parenthesized, not how it is parenthesized
         if (!Array.isArray(tree)) return tree;
-        if (tree[0] == "block") {
-            let a = go(tree[1]);
-            return "{"+(a[0]=='('?a.slice(1,-1):a)+"}";
-        }
-        return "("+tree.slice(1).map(go).join(' ')+")";
-    };
-    return go(tree).replace(/(?<=[a-z\d_]) +(?=[a-z\d_])/gi, '#').replace(/ /g, '').replace(/#/g, ' ');
+        if (tree[0] == "block") return "{"+go(tree[1])+"}";
+        if (tree[0] == "monad") return (Array.isArray(tree[1])?op:s=>s)(go(tree[1]))+' '+(Array.isArray(tree[2])?op:s=>s)(go(tree[2]));
+        if (tree[0] == "dyad") return (Array.isArray(tree[1])?mp:s=>s)(go(tree[1]))+' '+(Array.isArray(tree[2])?op:s=>s)(go(tree[2]))+' '+(Array.isArray(tree[3])?op:s=>s)(go(tree[3]));
+        if (tree[0] == "oneModifier") return (!Array.isArray(tree[1])||tree[1][0]=="block"?(s=>s):["oneModifier","twoModifier"].includes(tree[1][0])?op:mp)(go(tree[1]))+' '+go(tree[2]);
+        if (tree[0] == "twoModifier") return (!Array.isArray(tree[1])||tree[1][0]=="block"?(s=>s):["oneModifier","twoModifier"].includes(tree[1][0])?op:mp)(go(tree[1]))+' '+go(tree[2])+' '+(Array.isArray(tree[3])?mp:s=>s)(go(tree[3]));
+        if (tree[0] == "fork") return (!Array.isArray(tree[1])?(s=>s):["oneModifier","twoModifier"].includes(tree[1][0])?op:mp)(go(tree[1]))+' '+(!Array.isArray(tree[2])?(s=>s):["oneModifier","twoModifier"].includes(tree[2][0])?op:mp)(go(tree[2]))+' '+(!Array.isArray(tree[3])?(s=>s):tree[3][0]=="twoTrain"?mp:op)(go(tree[3]));
+        if (tree[0] == "twoTrain") return (!Array.isArray(tree[1])?(s=>s):["oneModifier","twoModifier"].includes(tree[1][0])?op:mp)(go(tree[1]))+' '+(!Array.isArray(tree[2])?(s=>s):tree[2][0]=="twoTrain"?mp:op)(go(tree[2]));
+    }
+    return go(tree).replace(/(?<=[a-z\d_𝕨𝕩]) +(?=[a-z\d_𝕨𝕩])/gi, '#').replace(/ /g, '').replace(/#/g, ' ');
 }
 // tacit string -> tacit tree -> block tree -> block string
 function blockify(string, valence) {
@@ -251,9 +255,8 @@ function blockify(string, valence) {
     } catch (e) { return e; }
 }
 /**** Page logic ****/
-let GButton = document.getElementById('GButton');
-let Gdiv = document.getElementById('Gdiv');
-let GVisible = false;
+let GVisible = false, moreParens = false;
+let [perm, parensButton, GButton, Gdiv] = ['perm', 'parensButton', 'GButton', 'Gdiv'].map(id=>document.getElementById(id));
 let FStuff = {input: document.getElementById('F'), monadOutput: document.getElementById('Fx'), dyadOutput: document.getElementById('wFx')};
 let GStuff = {input: document.getElementById('G'), monadOutput: document.getElementById('Gx'), dyadOutput: document.getElementById('wGx')};
 function run(func) {
@@ -262,32 +265,31 @@ function run(func) {
     monadOutput.textContent = blockify(value, "monad");
     dyadOutput.textContent = blockify(value, "dyad");
 }
-const perm = document.getElementById("perm");
 perm.onmouseover = perm.onfocus = () => {
   let f = (new TextEncoder()).encode(FStuff.input.value);
   let g = (new TextEncoder()).encode(GStuff.input.value);
-  perm.href = '?f='+btoa(String.fromCharCode(...f))+'&g='+btoa(String.fromCharCode(...g))+'&gvis='+GVisible;
+  perm.href = '?f='+btoa(String.fromCharCode(...f))+'&g='+btoa(String.fromCharCode(...g))+'&gvis='+GVisible+'&parens='+(moreParens?"more":"less");
 }
 if (location.search) {
-    let [fcode, gcode, gvis] = location.search.split('&');
+    let [fcode, gcode, gvis, parens] = location.search.split('&');
     fcode = fcode.slice(3);
     gcode = gcode.slice(2);
     if (gvis.slice(5) == "true") toggleG();
+    if (parens.slice(7) == "more") toggleParens();
     let f = new Uint8Array([...atob(fcode)].map(c=>c.charCodeAt(0)));
     let g = new Uint8Array([...atob(gcode)].map(c=>c.charCodeAt(0)));
     FStuff.input.value=(new TextDecoder()).decode(f);
     GStuff.input.value=(new TextDecoder()).decode(g);
 }
 function toggleG() {
-    if (GVisible) {
-        Gdiv.style.display = "none";
-        GButton.innerText = "Show 𝔾";
-    }
-    else {
-        Gdiv.style.display = "block";
-        GButton.innerText = "Hide 𝔾";
-    }
+    if (GVisible) { Gdiv.style.display = "none"; GButton.innerText = "Show 𝔾"; }
+    else { Gdiv.style.display = "block"; GButton.innerText = "Hide 𝔾"; }
     GVisible = !GVisible;
+}
+function toggleParens() {
+    parensButton.innerText = moreParens ? "More Parens" : "Less Parens";
+    moreParens = !moreParens;
+    ['F', 'G'].forEach(run);
 }
 ['F', 'G'].forEach(run);
 </script>
