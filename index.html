@@ -236,7 +236,7 @@ function toString(tree) {
     const go = tree => {
         // each case is responsible for how its children are parenthesized, not how it is parenthesized
         if (!Array.isArray(tree)) return tree;
-        if (tree[0] == "block") return "{"+go(tree[1])+"}";
+        if (tree[0] == "block") { let x=go(tree[1]); return "{"+(/𝕨|𝕩/.test(x)?"":"𝕊:")+x+"}"; }
         if (tree[0] == "monad") return (Array.isArray(tree[1])?op:s=>s)(go(tree[1]))+' '+(Array.isArray(tree[2])?op:s=>s)(go(tree[2]));
         if (tree[0] == "dyad") return (Array.isArray(tree[1])?mp:s=>s)(go(tree[1]))+' '+(Array.isArray(tree[2])?op:s=>s)(go(tree[2]))+' '+(Array.isArray(tree[3])?op:s=>s)(go(tree[3]));
         if (tree[0] == "oneModifier") return (!Array.isArray(tree[1])||tree[1][0]=="block"?(s=>s):["oneModifier","twoModifier"].includes(tree[1][0])?op:mp)(go(tree[1]))+' '+go(tree[2]);
