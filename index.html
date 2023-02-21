@@ -113,7 +113,7 @@ function nextToken(string) {
         if (match) {
             string = string.slice(regex.lastIndex);
             regex.lastIndex = 0;
-        return [[type, match[0]], string];
+            return [[type, match[0].replace(/ /g, '#')], string]; // replace is because toString function below does some funny business with spaces
         }
     }
     throw new Error("unrecognized token");
