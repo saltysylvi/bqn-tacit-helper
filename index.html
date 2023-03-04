@@ -265,8 +265,8 @@ function run(func) {
     dyadOutput.textContent = blockify(value, "dyad");
 }
 perm.onmouseover = perm.onfocus = () => {
-  let [f,g] = [FStuff,GStuff].map(s => (new TextEncoder()).encode(s.input.value));
-  perm.href = '?f='+btoa(String.fromCharCode(...f))+'&g='+btoa(String.fromCharCode(...g))+'&gvis='+GVisible+'&parens='+(moreParens?"more":"less");
+    let [f,g] = [FStuff,GStuff].map(s => (new TextEncoder()).encode(s.input.value));
+    perm.href = '?f='+btoa(String.fromCharCode(...f))+'&g='+btoa(String.fromCharCode(...g))+'&gvis='+GVisible+'&parens='+(moreParens?"more":"less");
 }
 if (location.search) {
     let [fcode, gcode, gvis, parens] = location.search.split('&');
