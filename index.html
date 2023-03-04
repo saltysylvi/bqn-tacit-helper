@@ -257,8 +257,7 @@ function blockify(string, valence) {
 /**** Page logic ****/
 let GVisible = false, moreParens = false;
 let [perm, parensButton, GButton, Gdiv] = ['perm', 'parensButton', 'GButton', 'Gdiv'].map(id=>document.getElementById(id));
-let FStuff = {input: document.getElementById('F'), monadOutput: document.getElementById('Fx'), dyadOutput: document.getElementById('wFx')};
-let GStuff = {input: document.getElementById('G'), monadOutput: document.getElementById('Gx'), dyadOutput: document.getElementById('wGx')};
+let [FStuff, GStuff] = ['F','G'].map(a=>({input: document.getElementById(a), monadOutput: document.getElementById(a+'x'), dyadOutput: document.getElementById('w'+a+'x')}));
 function run(func) {
     let {input, monadOutput, dyadOutput} = func == 'F' ? FStuff : GStuff;
     let value = input.value == "" ? input.placeholder : input.value;
@@ -266,20 +265,15 @@ function run(func) {
     dyadOutput.textContent = blockify(value, "dyad");
 }
 perm.onmouseover = perm.onfocus = () => {
-  let f = (new TextEncoder()).encode(FStuff.input.value);
-  let g = (new TextEncoder()).encode(GStuff.input.value);
+  let [f,g] = [FStuff,GStuff].map(s => (new TextEncoder()).encode(s.input.value));
   perm.href = '?f='+btoa(String.fromCharCode(...f))+'&g='+btoa(String.fromCharCode(...g))+'&gvis='+GVisible+'&parens='+(moreParens?"more":"less");
 }
 if (location.search) {
     let [fcode, gcode, gvis, parens] = location.search.split('&');
-    fcode = fcode.slice(3);
-    gcode = gcode.slice(2);
+    fcode = fcode.slice(3); gcode = gcode.slice(2);
     if (gvis.slice(5) == "true") toggleG();
     if (parens.slice(7) == "more") toggleParens();
-    let f = new Uint8Array([...atob(fcode)].map(c=>c.charCodeAt(0)));
-    let g = new Uint8Array([...atob(gcode)].map(c=>c.charCodeAt(0)));
-    FStuff.input.value=(new TextDecoder()).decode(f);
-    GStuff.input.value=(new TextDecoder()).decode(g);
+    [[FStuff, fcode], [GStuff, gcode]].forEach(([s,c]) => {s.input.value=(new TextDecoder()).decode(new Uint8Array([...atob(c)].map(c=>c.charCodeAt(0))))});
 }
 function toggleG() {
     if (GVisible) { Gdiv.style.display = "none"; GButton.innerText = "Show 𝔾"; }
