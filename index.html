@@ -71,17 +71,14 @@
             <div id="aboutdiv">
                 <h1>About</h1>
                 <p>
-                    My handwritten tokenizer and parser are pretty janky and do not conform to the <a href="https://mlochbaum.github.io/BQN/spec/index.html">BQN spec</a>,
-                    but I give them my official "ehhh, good enough" seal of approval.
-                    The parser is based on <a href="https://www.jsoftware.com/ioj/iojSent.htm#Parsing">An Implementation of J</a>.
-                    The permalink functionality is copied from the <a href="https://mlochbaum.github.io/BQN/try.html">BQN repl</a>.
-                    The font is <a href="https://github.com/mlochbaum/BQN/blob/master/docs/BQN386.ttf">BQN386</a>.
+                    Here's a BQN thing <a href="https://saltysylvi.github.io/">I</a> made for converting a tacit function to a block function.
+                    Type a tacit function into the box and the page will automatically show both a one-argument and two-argument block form.
                     The standard <a href="https://mlochbaum.github.io/BQN/keymap.html">BQN keymap</a> is supported with backslash prefix.
                 </p>
                 <p>
                     Only a subset of BQN syntax is allowed.
                     Tokens must be primitives, numbers, characters, strings, identifiers, stranded lists of the aforementioned token types, or parentheses.
-                    This means no blocks, no angle-bracket lists, no higher-rank arrays, no nested stranded lists, no namespace field accesses, and no define/change/export.
+                    This means no blocks, no angle-bracket lists, no higher-rank arrays, no nested stranded lists, no namespace field accesses, no system functions, and no define/change/export.
                     The string in the input box must be a function expression.
                 </p>
                 <p>
@@ -91,6 +88,14 @@
                     Nested blocks are also created for non-simple left operands to rank and depth; the right operand is left untouched (it's usually a number or list anyway).
                     A function expression is "simple" if it is a primitive or identifier.
                     Expansion is not performed if the function to be expanded is the operand to a modifier not mentioned above.
+                </p>
+                <p>
+                    This page is inspired by <a href="https://tacit.help">tacit.help</a>.
+                    My handwritten tokenizer and parser are pretty janky and do not conform to the <a href="https://mlochbaum.github.io/BQN/spec/index.html">BQN spec</a>,
+                    but I give them my official "ehhh, good enough" seal of approval.
+                    The parser is based on <a href="https://www.jsoftware.com/ioj/iojSent.htm#Parsing">An Implementation of J</a>.
+                    The keyboard and permalink functionality are copied from the <a href="https://mlochbaum.github.io/BQN/try.html">BQN repl</a>.
+                    The font is <a href="https://github.com/mlochbaum/BQN/blob/master/docs/BQN386.ttf">BQN386</a>.
                 </p>
                 <p><a href="?f=MC4wMeKKuCjiiqPDl8K34oyKMC41K8O3y5wp&g=&gvis=false&parens=less">Check</a> <a href="?f=KC3Dt+KXiyjDl8K0KTHiirgrKeKfnOKGlcuc&g=&gvis=false&parens=less">out</a> <a href="?f=wqziiJjiiIrin5wiLiw6Oz8hIuKKuC8=&g=&gvis=false&parens=less">these</a> <a href="?f=KOKKoi3LnCtgw5fCrCniiJg94oqU4oqi&g=&gvis=false&parens=less">examples</a>.</p>
                 <p>View the source code <a href="https://github.com/saltysylvi/bqn-tacit-helper">here</a>.</p>
@@ -284,6 +289,20 @@ function toggleParens() {
     moreParens = !moreParens;
     ['F', 'G'].forEach(run);
 }
+let kk=Array.from('`123456890-=~!@#$%^&*()_+qwertuiop[]QWERTIOP{}asdfghjkl;ASFGHKL:"zxcvbm,./ZXVBM<>? \'\\');
+let kv=Array.from('˜˘¨⁼⌜´˝∞¯•÷×¬⎉⚇⍟◶⊘⎊⍎⍕⟨⟩√⋆⌽𝕨∊↑∧⊔⊏⊐π←→↙𝕎⍷𝕣⍋⊑⊒⍳⊣⊢⍉𝕤↕𝕗𝕘⊸∘○⟜⋄↖𝕊𝔽𝔾«⌾»·˙⥊𝕩↓∨⌊≡∾≍≠⋈𝕏⍒⌈≢≤≥⇐‿↩\\');
+let keymode=0, keys={}; kk.forEach((k,i)=>{keys[k]=kv[i]});
+FStuff.input.onkeydown = GStuff.input.onkeydown = e => {
+    if (e.key=="Shift") return;
+    if (keymode) {e.preventDefault(); keymode=0; let c=keys[e.key]; if (c) typeChar(e.target, c, e)}
+    else if(e.key=='\\') {e.preventDefault(); keymode=1}};
+let typeChar = (t, c, e) => {
+    let v = t.value;
+    let i = t.selectionStart;
+    t.value = v.slice(0,i)+c+v.slice(t.selectionEnd);
+    t.selectionStart = t.selectionEnd = i+c.length;
+    t.dispatchEvent(new Event('input'));
+};
 ['F', 'G'].forEach(run);
 </script>
 </body>
