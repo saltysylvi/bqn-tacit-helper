@@ -294,8 +294,8 @@ let kv=Array.from('˜˘¨⁼⌜´˝∞¯•÷×¬⎉⚇⍟◶⊘⎊⍎⍕⟨⟩�
 let keymode=0, keys={}; kk.forEach((k,i)=>{keys[k]=kv[i]});
 FStuff.input.onkeydown = GStuff.input.onkeydown = e => {
     if (e.key=="Shift") return;
-    if (keymode) {e.preventDefault(); keymode=0; let c=keys[e.key]; if (c) typeChar(e.target, c, e)}
-    else if(e.key=='\\') {e.preventDefault(); keymode=1}};
+    if (keymode) {e.preventDefault(); keymode=0; e.target.style.backgroundColor=''; let c=keys[e.key]; if (c) typeChar(e.target, c, e)}
+    else if(e.key=='\\') {e.preventDefault(); keymode=1; e.target.style.backgroundColor = '#eee'}};
 let typeChar = (t, c, e) => {
     let v = t.value;
     let i = t.selectionStart;
