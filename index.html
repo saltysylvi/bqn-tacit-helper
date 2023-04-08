@@ -267,6 +267,13 @@ function run(func) {
     let value = input.value == "" ? input.placeholder : input.value;
     monadOutput.textContent = blockify(value, "monad");
     dyadOutput.textContent = blockify(value, "dyad");
+    checkMatch();
+}
+function checkMatch() { // check if F and G are same function in either monadic or dyadic case and outline in green if so
+    if (GVisible && FStuff.monadOutput.textContent == GStuff.monadOutput.textContent) { FStuff.monadOutput.style.border = '2px solid green'; GStuff.monadOutput.style.border = '2px solid green'; }
+    else { FStuff.monadOutput.style.border = ''; GStuff.monadOutput.style.border = ''; }
+    if (GVisible && FStuff.dyadOutput.textContent == GStuff.dyadOutput.textContent) { FStuff.dyadOutput.style.border = '2px solid green'; GStuff.dyadOutput.style.border = '2px solid green'; }
+    else { FStuff.dyadOutput.style.border = ''; GStuff.dyadOutput.style.border = ''; }
 }
 perm.onmouseover = perm.onfocus = () => {
     let [f,g] = [FStuff,GStuff].map(s => (new TextEncoder()).encode(s.input.value));
@@ -283,6 +290,7 @@ function toggleG() {
     if (GVisible) { Gdiv.style.display = "none"; GButton.innerText = "Show 𝔾"; }
     else { Gdiv.style.display = "block"; GButton.innerText = "Hide 𝔾"; }
     GVisible = !GVisible;
+    checkMatch();
 }
 function toggleParens() {
     parensButton.innerText = moreParens ? "More Parens" : "Less Parens";
